@@ -12,15 +12,9 @@
  * 1) Open the device pinout header and update with the pinout for your application
  * 2) Open the storage objects header and define what system and current data objects are right for your application
  * 3) Edit the take measurements header and c files to reflect the data you want to collect and put it into the correct objects
+ * 4) Edit the sleep helper config file to configure the behaviour of your device
  * 
  */
-
-// Revision history
-// v0.00 - Started with Rick's Temperature Example - modified slightly for my pinout and Serial not Serial1
-// v0.01 - Added the AB1805 Watchdog timer library
-// v0.02 - Updated with the example code and update from version 0.0.2 of the library
-// v0.03 - Trying to add the ability to send a Particle Webhook - not working
-// v0.04 - Changed the structure of the code to make it easier to maintain / more modular
 
 // Include needed Particle / Community libraries
 #include "AB1805_RK.h"
@@ -32,6 +26,7 @@
 #include "device_pinout.h"                          // Where we store the pinout for our device
 #include "take_measurements.h"                      // This is the code that collects data from our particular sensor configuration
 #include "particle_fn.h"                            // Place where common Particle functions will go
+#include "sleep_helper_config.h"                    // This is where we set the parameters for the Sleep Helper library
 
 // Set logging level and Serial port (USB or Serial1)
 SerialLogHandler logHandler(LOG_LEVEL_INFO, {       // Changed to USB log handler from Serial1
@@ -55,7 +50,7 @@ char tempString[16];
 // Support for Particle Products (changes coming in 4.x - https://docs.particle.io/cards/firmware/macros/product_id/)
 PRODUCT_ID(PLATFORM_ID);                            // Device needs to be added to product ahead of time.  Remove once we go to deviceOS@4.x
 PRODUCT_VERSION(0);
-char currentPointRelease[6] ="0.04";
+char currentPointRelease[6] ="0.05";
 
 
 void setup() {
@@ -65,7 +60,6 @@ void setup() {
     Particle.function("Set Mode", setLowPowerMode);
     Particle.function("Set Wake Time", setWakeTime);
     Particle.function("Set Sleep Time", setSleepTime);
-
 
     // Initialize AB1805 Watchdog and RTC
     {
@@ -81,49 +75,16 @@ void setup() {
     // Initialize PublishQueuePosixRK
 	PublishQueuePosix::instance().setup();
 
-    SleepHelper::instance()
-        .withMinimumCellularOffTime(5min)
-        .withMaximumTimeToConnect(11min)
-        .withTimeConfig("EST5EDT,M3.2.0/02:00:00,M11.1.0/02:00:00")
-        .withEventHistory("/usr/events.txt", "eh")
-        .withDataCaptureFunction([](SleepHelper::AppCallbackState &state) {
-            if (Time.isValid()) {
-                SleepHelper::instance().addEvent([](JSONWriter &writer) {
-                    writer.name("t").value((int) Time.now());
-                    writer.name("c").value(readTempC(), 1);
-                });
-                char dataStr[16];           // While we are here see if I can send a webhook to the queue
-                snprintf(dataStr,sizeof(dataStr),"t: %4.2f",current.tempC);
-                PublishQueuePosix::instance().publish("Test", dataStr, PRIVATE);
-                Log.info(dataStr);          // Visibility to the payload in the webhook
-            }
-            return false;
-        })
-        .withWakeFunction([](const SystemSleepResult &sleepResult) {
-            delay(2000);                       // Delay so we can capture in serial monitor
-            return true;
-        })
-        .withAB1805_WDT(ab1805)                // Stop the watchdog before sleep or reset, and resume after wake
-        .withPublishQueuePosixRK()             // Manage both internal publish queueing and PublishQueuePosixRK
-        ;
+    // Configure and initialize the Sleep Helper function
+    sleepHelperConfig();                                 // This is the function call to configure the sleep helper parameters
 
-    // Full wake and publish
-    // - Every 15 minutes from 9:00 AM to 5:00 PM local time on weekdays (not Saturday or Sunday)
-    // - Every 2 hours other times
-    SleepHelper::instance().getScheduleFull()
-        .withMinuteOfHour(15, LocalTimeRange(LocalTimeHMS("09:00:00"), LocalTimeHMS("16:59:59"), LocalTimeRestrictedDate(LocalTimeDayOfWeek::MASK_WEEKDAY)))
-        .withHourOfDay(2);
-
-    // Data capture every 2 minutes
-    SleepHelper::instance().getScheduleDataCapture()
-        .withMinuteOfHour(2);
-
-    SleepHelper::instance().setup();
+    SleepHelper::instance().setup();                    // This puts these parameters into action
 }
 
 void loop() {
     SleepHelper::instance().loop();
 
     ab1805.loop();
+    
     PublishQueuePosix::instance().loop();
 }

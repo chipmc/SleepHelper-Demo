@@ -6,6 +6,6 @@
 
 extern char tempString[16];
 
-bool readTempC();           // Takes temperature and stores in current
+bool readTempC();           // This is the function that configures the Sleep Helper Function
 
 #endif
