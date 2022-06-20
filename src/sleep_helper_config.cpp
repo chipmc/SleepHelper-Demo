@@ -9,6 +9,9 @@
 
 extern AB1805 ab1805;                                // Rickkas' RTC / Watchdog library
 
+system_tick_t pinWakeMillis = 0;
+system_tick_t lastButtonPress = 0;
+
 void sleepHelperConfig() {
 
     SleepHelper::instance()
@@ -29,17 +32,52 @@ void sleepHelperConfig() {
             }
             return false;
         })
-        .withWakeFunction([](const SystemSleepResult &sleepResult) {
-            delay(2000);                       // Delay so we can capture in serial monitor
+        .withSleepConfigurationFunction([](SystemSleepConfiguration &sleepConfig, SleepHelper::SleepConfigurationParameters &params) {
+            // Add a GPIO wake on button press
+            sleepConfig.gpio(BUTTON_PIN, FALLING);
             return true;
+        })
+        .withWakeFunction([](const SystemSleepResult &sleepResult) {
+            if (sleepResult.wakeupReason() == SystemSleepWakeupReason::BY_GPIO) {
+                pin_t whichPin = sleepResult.wakeupPin();
+                Log.info("wake by pin %d", whichPin);
+                if (whichPin == BUTTON_PIN) {
+                    lastButtonPress = pinWakeMillis = millis();
+                }
+                else {
+                    pinWakeMillis = 0;
+                }
+            }
+            return true;
+        })
+        .withShouldConnectFunction([](int &connectConviction, int &noConnectConviction) {
+            if (pinWakeMillis) {
+                // We probably don't want to connect if woken by pin
+                noConnectConviction = 60;
+            }
+            return true;
+        })
+        .withNoConnectionFunction([](SleepHelper::AppCallbackState &state) {
+            // If woken by pin, wait until button is released
+            if (pinWakeMillis) {
+                // return true to stay awake, false to allow sleep
+                return (digitalRead(BUTTON_PIN) == LOW);
+            }
+            else {
+                return false;
+            }
+        })
+        .withSleepReadyFunction([](SleepHelper::AppCallbackState &, system_tick_t) {
+            if (sysStatus.sleepEnable) return false;      // Boolean set by Particle.function - If sleep is enabled return false
+            else return true;                             // If we need to delay sleep, return true
         })
         .withAB1805_WDT(ab1805)                // Stop the watchdog before sleep or reset, and resume after wake
         .withPublishQueuePosixRK()             // Manage both internal publish queueing and PublishQueuePosixRK
         ;
 
     // Full wake and publish
-    // - Every 15 minutes from 9:00 AM to 5:00 PM local time on weekdays (not Saturday or Sunday)
-    // - Every 2 hours other times
+    // Every 15 minutes from 9:00 AM to 5:00 PM local time on weekdays (not Saturday or Sunday)
+    // Every 2 hours other times
     SleepHelper::instance().getScheduleFull()
         .withMinuteOfHour(15, LocalTimeRange(LocalTimeHMS("09:00:00"), LocalTimeHMS("16:59:59"), LocalTimeRestrictedDate(LocalTimeDayOfWeek::MASK_WEEKDAY)))
         .withHourOfDay(2);

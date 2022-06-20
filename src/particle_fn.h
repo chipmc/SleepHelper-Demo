@@ -7,7 +7,7 @@
 
 int setWakeTime(String command); 
 int setSleepTime(String command);
-int setLowPowerMode(String command);
+int setEnableSleep(String command);
 
 
 #endif

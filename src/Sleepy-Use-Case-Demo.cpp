@@ -21,6 +21,7 @@
 #include "PublishQueuePosixRK.h"
 #include "SleepHelper.h"
 #include "LocalTimeRK.h"
+#include "MB85RC256V-FRAM-RK.h"
 // Include headers that are part of this program's structure
 #include "storage_objects.h"                        // Where we define our structures for storing data
 #include "device_pinout.h"                          // Where we store the pinout for our device
@@ -41,8 +42,7 @@ STARTUP(System.enableFeature(FEATURE_RESET_INFO));  // So we know why the device
 
 // Instantiate services and objects
 AB1805 ab1805(Wire);                                // Rickkas' RTC / Watchdog library
-struct systemStatus_structure sysStatus;            // See structure definition in storage_objects.h
-struct current_structure current;                   
+MB85RC64 fram(Wire, 0);                             // Rickkas' FRAM library
 
 // Variables
 char tempString[16];
@@ -50,14 +50,14 @@ char tempString[16];
 // Support for Particle Products (changes coming in 4.x - https://docs.particle.io/cards/firmware/macros/product_id/)
 PRODUCT_ID(PLATFORM_ID);                            // Device needs to be added to product ahead of time.  Remove once we go to deviceOS@4.x
 PRODUCT_VERSION(0);
-char currentPointRelease[6] ="0.05";
+char currentPointRelease[6] ="0.06";
 
 
 void setup() {
 
     Particle.variable("tempC", tempString);
 
-    Particle.function("Set Mode", setLowPowerMode);
+    Particle.function("Set Mode", setEnableSleep);
     Particle.function("Set Wake Time", setWakeTime);
     Particle.function("Set Sleep Time", setSleepTime);
 

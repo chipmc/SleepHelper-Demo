@@ -1,6 +1,4 @@
 //Particle Functions
-#include "take_measurements.h"
-#include "storage_objects.h"
 #include "device_pinout.h"
 #include "Particle.h"
 
@@ -18,10 +16,10 @@
  * D17 - A2 -
  * D16 - A3 -
  * D15 - A4 -               TMP32 Temp Sensor
- * D14 - A5 / SPI SS -      disableModule
- * D13 - SCK - SPI Clock -  intPin
+ * D14 - A5 / SPI SS -      
+ * D13 - SCK - SPI Clock -  
  * D12 - MO - SPI MOSI -    
- * D11 - MI - SPI MISO -    ledPower
+ * D11 - MI - SPI MISO -   
  * D10 - UART RX -
  * D9 - UART TX -
 
@@ -31,8 +29,8 @@
  * VUSB -
  * D8 -                     Wake Connected to Watchdog Timer
  * D7 -                     Blue Led
- * D6 -                     DEEP-SLEEP Enable Pin - Brings Enable Pin low - Only RTC Alarm interrupt will wake
- * D5 -                     Done Pin Connected to the Watchdog Timer
+ * D6 -                     
+ * D5 -                     
  * D4 -                     User Switch
  * D3 - 
  * D2 - 
@@ -42,7 +40,8 @@
  *
 ***********************************************************************************************************************/
 
-
 const pin_t TMP36_SENSE_PIN = A4;
 const pin_t TMP36_POWER_PIN = A1;
+const pin_t BUTTON_PIN      = D4;
+const pin_t BLUE_LED        = D7;
 const pin_t WAKEUP_PIN      = D8;

@@ -17,4 +17,5 @@ I am looking for feedback and suggestions on whether this approach makes sense o
 // v0.03 - Trying to add the ability to send a Particle Webhook - not working
 // v0.04 - Changed the structure of the code to make it easier to maintain / more modular
 // v0.05 - Moved Sleep Helper configuration into a separate function
+// v0.06 - Added persistent storage and particle control using Particle functions
 

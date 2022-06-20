@@ -11,14 +11,17 @@
 #ifndef SYS_STATUS_H
 #define SYS_STATUS_H
 
+#include "MB85RC256V-FRAM-RK.h"                     // Include this library if you are using FRAM
 #include "Particle.h"
+
+extern const int FRAMversionNumber;                    // Increment this number each time the memory map is changed
 
 struct systemStatus_structure {                     // Where we store the configuration / status of the device
   uint8_t structuresVersion;                        // Version of the data structures (system and current)
   int currentConnectionLimit;                       // Here we will store the connection limit in seconds
   bool verboseMode;                                 // Turns on extra messaging
   bool solarPowerMode;                              // Powered by a solar panel or utility power
-  bool lowPowerMode;                                // Low Power Mode will disconnect from the Cellular network to save power
+  bool sleepEnable;                                // Low Power Mode will disconnect from the Cellular network to save power
   uint8_t wakeTime;                                 // Hour to start operations (0-23)
   uint8_t sleepTime;                                // Hour to go to sleep for the night (0-23)
 };
@@ -34,5 +37,8 @@ struct current_structure {                          // Where we store values in 
 };
 
 extern struct current_structure current;
+
+bool initializeStorage();                           // Initialize the storage instance
+bool storeObjects();                                // Store the current and sysStatus objects
 
 #endif

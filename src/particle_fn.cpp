@@ -65,14 +65,14 @@ int setSleepTime(String command)
  *
  * @return 1 if able to successfully take action, 0 if invalid command
  */
-int setLowPowerMode(String command)                                   // This is where we can put the device into low power mode if needed
+int setEnableSleep(String command)                                   // This is where we can put the device into low power mode if needed
 {
   char lowPowerModeStr[24];
 
   if (command != "1" && command != "0") return 0;                     // Before we begin, let's make sure we have a valid input
   if (command == "1")                                                 // Command calls for setting lowPowerMode
   {
-    sysStatus.lowPowerMode = true;
+    sysStatus.sleepEnable = true;
     strncpy(lowPowerModeStr,"Low Power Mode", sizeof(lowPowerModeStr));
     Log.info(lowPowerModeStr);
     if (Particle.connected()) {
@@ -81,7 +81,7 @@ int setLowPowerMode(String command)                                   // This is
   }
   else if (command == "0")                                            // Command calls for clearing lowPowerMode
   {
-    sysStatus.lowPowerMode = false;
+    sysStatus.sleepEnable = false;
     strncpy(lowPowerModeStr,"Cleared Low Power Mode",  sizeof(lowPowerModeStr));
     Log.info(lowPowerModeStr);
     if (!Particle.connected()) {                                 // In case we are not connected, we will do so now.
