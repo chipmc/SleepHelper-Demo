@@ -3,7 +3,24 @@
 #include "storage_objects.h"
 #include "Particle.h"
 
+// Variables
+extern char tempString[16];
+extern char currentPointRelease[6];
 
+/**
+ * @brief Initialized the Particle functions and variables
+ * 
+ * @details If new particles of functions are defined, they need to be initialized here
+ * 
+ */
+void particleInitialize() {
+  Particle.variable("tempC", tempString);
+  Particle.variable("Release",currentPointRelease);
+
+  Particle.function("Enable Sleep", setEnableSleep);
+  Particle.function("Set Wake Time", setWakeTime);
+  Particle.function("Set Sleep Time", setSleepTime);
+}
 
 /**
  * @brief Sets the closing time of the facility.
@@ -67,25 +84,25 @@ int setSleepTime(String command)
  */
 int setEnableSleep(String command)                                   // This is where we can put the device into low power mode if needed
 {
-  char lowPowerModeStr[24];
+  char enableSleepStr[24];
 
   if (command != "1" && command != "0") return 0;                     // Before we begin, let's make sure we have a valid input
   if (command == "1")                                                 // Command calls for setting lowPowerMode
   {
-    sysStatus.sleepEnable = true;
-    strncpy(lowPowerModeStr,"Low Power Mode", sizeof(lowPowerModeStr));
-    Log.info(lowPowerModeStr);
+    sysStatus.enableSleep = true;
+    strncpy(enableSleepStr,"Enabled Sleep", sizeof(enableSleepStr));
+    Log.info(enableSleepStr);
     if (Particle.connected()) {
-      Particle.publish("Mode",lowPowerModeStr, PRIVATE);
+      Particle.publish("Mode",enableSleepStr, PRIVATE);
     }
   }
   else if (command == "0")                                            // Command calls for clearing lowPowerMode
   {
-    sysStatus.sleepEnable = false;
-    strncpy(lowPowerModeStr,"Cleared Low Power Mode",  sizeof(lowPowerModeStr));
-    Log.info(lowPowerModeStr);
-    if (!Particle.connected()) {                                 // In case we are not connected, we will do so now.
-      Particle.publish("Mode",lowPowerModeStr, PRIVATE);
+    sysStatus.enableSleep = false;
+    strncpy(enableSleepStr,"Disabled Sleep",  sizeof(enableSleepStr));
+    Log.info(enableSleepStr);
+    if (Particle.connected()) {                                 // In case we are not connected, we will do so now.
+      Particle.publish("Mode",enableSleepStr, PRIVATE);
     }
   }
   return 1;

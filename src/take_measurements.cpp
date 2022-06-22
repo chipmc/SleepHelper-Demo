@@ -4,6 +4,10 @@
 #include "device_pinout.h"
 #include "Particle.h"
 
+char tempString[16] = " ";
+
+FuelGauge fuelGauge;                                // Needed to address issue with updates in low battery state
+
 
 /**
  * @brief This code collects temperature data from the TMP-36
@@ -48,3 +52,44 @@ bool readTempC() {
     return true;
 }
 
+/**
+ * @brief Tests Battery and stores current values
+ * 
+ */
+
+bool batteryState() {
+    current.batteryState = System.batteryState();                      // Call before isItSafeToCharge() as it may overwrite the context
+
+  if (sysStatus.enableSleep) {                                        // Need to take these steps if we are sleeping
+    fuelGauge.quickStart();                                            // May help us re-establish a baseline for SoC
+    delay(500);
+  }
+
+  current.stateOfCharge = int(fuelGauge.getSoC());                   // Assign to system value
+
+  if (current.stateOfCharge > 60) return true;
+  else return false;
+}
+
+/**
+ * @brief Checks to see if the temperature is in the range to support charging
+ * 
+ * @details Will enable or disable charging based on the current temperature
+ * 
+ * @link https://batteryuniversity.com/learn/article/charging_at_high_and_low_temperatures @endlink
+ * 
+ */
+
+bool isItSafeToCharge()                                                // Returns a true or false if the battery is in a safe charging range.
+{
+  PMIC pmic(true);
+  if (current.tempC < 0 || current.tempC > 37 )  {                     // Reference: (32 to 113 but with safety)
+    pmic.disableCharging();                                            // It is too cold or too hot to safely charge the battery
+    current.batteryState = 1;                                        // Overwrites the values from the batteryState API to reflect that we are "Not Charging"
+    return false;
+  }
+  else {
+    pmic.enableCharging();                                             // It is safe to charge the battery
+    return true;
+  }
+}

@@ -44,22 +44,14 @@ STARTUP(System.enableFeature(FEATURE_RESET_INFO));  // So we know why the device
 AB1805 ab1805(Wire);                                // Rickkas' RTC / Watchdog library
 MB85RC64 fram(Wire, 0);                             // Rickkas' FRAM library
 
-// Variables
-char tempString[16];
-
 // Support for Particle Products (changes coming in 4.x - https://docs.particle.io/cards/firmware/macros/product_id/)
 PRODUCT_ID(PLATFORM_ID);                            // Device needs to be added to product ahead of time.  Remove once we go to deviceOS@4.x
 PRODUCT_VERSION(0);
-char currentPointRelease[6] ="0.06";
-
+char currentPointRelease[6] ="0.07";
 
 void setup() {
 
-    Particle.variable("tempC", tempString);
-
-    Particle.function("Set Mode", setEnableSleep);
-    Particle.function("Set Wake Time", setWakeTime);
-    Particle.function("Set Sleep Time", setSleepTime);
+    particleInitialize();                           // Sets up all the Particle functions and variables defined in particle_fn.h
 
     // Initialize AB1805 Watchdog and RTC
     {

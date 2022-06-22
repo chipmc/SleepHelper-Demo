@@ -12,6 +12,10 @@ extern AB1805 ab1805;                                // Rickkas' RTC / Watchdog 
 system_tick_t pinWakeMillis = 0;
 system_tick_t lastButtonPress = 0;
 
+// Battery conect information - https://docs.particle.io/reference/device-os/firmware/boron/#batterystate-
+const char* batteryContext[7] = {"Unknown","Not Charging","Charging","Charged","Discharging","Fault","Diconnected"};
+
+
 void sleepHelperConfig() {
 
     SleepHelper::instance()
@@ -25,16 +29,19 @@ void sleepHelperConfig() {
                     writer.name("t").value((int) Time.now());
                     writer.name("c").value(readTempC(), 1);
                 });
-                char dataStr[16];           // While we are here see if I can send a webhook to the queue
-                snprintf(dataStr,sizeof(dataStr),"t: %4.2f",current.tempC);
-                PublishQueuePosix::instance().publish("Test", dataStr, PRIVATE);
+                batteryState();
+                isItSafeToCharge();
+                char dataStr[128];           // Sends a Webhook based on these readings
+                snprintf(dataStr, sizeof(dataStr), "{\"battery\":%i,\"key1\":\"%s\",\"temp\":%4.2f,\"timestamp\":%lu000}", current.stateOfCharge, batteryContext[current.batteryState], current.tempC, Time.now());
+                PublishQueuePosix::instance().publish("Sleepy-Use-Case-Webhook", dataStr, PRIVATE);
                 Log.info(dataStr);          // Visibility to the payload in the webhook
             }
             return false;
         })
         .withSleepConfigurationFunction([](SystemSleepConfiguration &sleepConfig, SleepHelper::SleepConfigurationParameters &params) {
             // Add a GPIO wake on button press
-            sleepConfig.gpio(BUTTON_PIN, FALLING);
+            sleepConfig.gpio(BUTTON_PIN, CHANGE);
+            if (!digitalRead(BUTTON_PIN)) sysStatus.enableSleep = false;
             return true;
         })
         .withWakeFunction([](const SystemSleepResult &sleepResult) {
@@ -52,8 +59,8 @@ void sleepHelperConfig() {
         })
         .withShouldConnectFunction([](int &connectConviction, int &noConnectConviction) {
             if (pinWakeMillis) {
-                // We probably don't want to connect if woken by pin
-                noConnectConviction = 60;
+                // Waking by the user pressing the button signals the need to connect.
+                noConnectConviction = 0;
             }
             return true;
         })
@@ -68,7 +75,7 @@ void sleepHelperConfig() {
             }
         })
         .withSleepReadyFunction([](SleepHelper::AppCallbackState &, system_tick_t) {
-            if (sysStatus.sleepEnable) return false;      // Boolean set by Particle.function - If sleep is enabled return false
+            if (sysStatus.enableSleep) return false;      // Boolean set by Particle.function - If sleep is enabled return false
             else return true;                             // If we need to delay sleep, return true
         })
         .withAB1805_WDT(ab1805)                // Stop the watchdog before sleep or reset, and resume after wake
@@ -76,10 +83,10 @@ void sleepHelperConfig() {
         ;
 
     // Full wake and publish
-    // Every 15 minutes from 9:00 AM to 5:00 PM local time on weekdays (not Saturday or Sunday)
+    // Every 15 minutes from 9:00 AM to 10:00 PM local time on weekdays (not Saturday or Sunday)
     // Every 2 hours other times
     SleepHelper::instance().getScheduleFull()
-        .withMinuteOfHour(15, LocalTimeRange(LocalTimeHMS("09:00:00"), LocalTimeHMS("16:59:59"), LocalTimeRestrictedDate(LocalTimeDayOfWeek::MASK_WEEKDAY)))
+        .withMinuteOfHour(15, LocalTimeRange(LocalTimeHMS("09:00:00"), LocalTimeHMS("21:59:59"), LocalTimeRestrictedDate(LocalTimeDayOfWeek::MASK_WEEKDAY)))
         .withHourOfDay(2);
 
     // Data capture every 2 minutes

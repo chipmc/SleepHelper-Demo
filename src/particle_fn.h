@@ -5,6 +5,7 @@
 
 #include "Particle.h"
 
+void particleInitialize();
 int setWakeTime(String command); 
 int setSleepTime(String command);
 int setEnableSleep(String command);

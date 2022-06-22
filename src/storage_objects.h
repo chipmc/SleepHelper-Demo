@@ -21,7 +21,7 @@ struct systemStatus_structure {                     // Where we store the config
   int currentConnectionLimit;                       // Here we will store the connection limit in seconds
   bool verboseMode;                                 // Turns on extra messaging
   bool solarPowerMode;                              // Powered by a solar panel or utility power
-  bool sleepEnable;                                // Low Power Mode will disconnect from the Cellular network to save power
+  bool enableSleep;                                // Low Power Mode will disconnect from the Cellular network to save power
   uint8_t wakeTime;                                 // Hour to start operations (0-23)
   uint8_t sleepTime;                                // Hour to go to sleep for the night (0-23)
 };

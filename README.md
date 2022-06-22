@@ -18,4 +18,5 @@ I am looking for feedback and suggestions on whether this approach makes sense o
 // v0.04 - Changed the structure of the code to make it easier to maintain / more modular
 // v0.05 - Moved Sleep Helper configuration into a separate function
 // v0.06 - Added persistent storage and particle control using Particle functions
+// v0.07 - Incorporated updated libraries, added webhook and fixed bugs
 
