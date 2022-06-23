@@ -8,6 +8,19 @@ extern char tempString[16];
 extern char currentPointRelease[6];
 
 /**
+ * @brief Returns an integer to support Particle vaiable limitations
+ * 
+ */
+int convertWakeToInt() {
+  int returnValue;
+  returnValue = sysStatus.wakeTime;
+  return returnValue;
+}
+int convertSleepToInt() {
+  return (int)sysStatus.sleepTime;
+}
+
+/**
  * @brief Initialized the Particle functions and variables
  * 
  * @details If new particles of functions are defined, they need to be initialized here
@@ -15,6 +28,9 @@ extern char currentPointRelease[6];
  */
 void particleInitialize() {
   Particle.variable("tempC", tempString);
+  Particle.variable("Wake Time", convertWakeToInt);
+  Particle.variable("Sleep Time", convertSleepToInt);
+  Particle.variable("Sleep Enabled",(sysStatus.enableSleep) ? "Yes" : "No");
   Particle.variable("Release",currentPointRelease);
 
   Particle.function("Enable Sleep", setEnableSleep);

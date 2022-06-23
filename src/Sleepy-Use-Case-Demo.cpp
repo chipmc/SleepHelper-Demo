@@ -1,19 +1,18 @@
 /**
  * @brief Sleep Helper Demo
  * @details Sleep Helper Demo - Generic implementation with Minimum Functionality For Field Testing.  The idea is to build a strcuture that can be easily maintained and modified
- * without leading to a single huge mainfile.  Much of the code needed for a sleep / wake / measure / report use case is included in the Sleep Helper file.  I am trying 
- * to make sure it is easy to adapt this code to new use cases
+ * without leading to a single huge mainfile.  I am trying to make sure it is easy to adapt this code to new use cases
  * @author Chip McClelland based on Library and Example Code by @Rickkas
  * @link https://rickkas7.github.io/SleepHelper/index.html @endlink - Documentation
  * @link https://github.com/rickkas7/SleepHelper/ @endlink - Project Repository
  * @date 31 May 2022
  * 
- * To use this file, please consider these steps
- * 1) Open the device pinout header and update with the pinout for your application
- * 2) Open the storage objects header and define what system and current data objects are right for your application
- * 3) Edit the take measurements header and c files to reflect the data you want to collect and put it into the correct objects
- * 4) Edit the sleep helper config file to configure the behaviour of your device
- * 
+ * To keep the main application manageable, I have broken out configuration into focused files
+ * 1) device_pinout - Pin definitions and connections for your device
+ * 2) storage_object - Define what variables are needed to capture the sustem and current status
+ * 3) take_measurements - This is the set of activities executed each time the device wakes
+ * 4) sleep_helper_config - Define the sleep / wake / report cycle - the full behaviour of your device
+ * 5) particle_fn - For any particle variables / functions that you want to expose in the console
  */
 
 // Include needed Particle / Community libraries
@@ -47,36 +46,35 @@ MB85RC64 fram(Wire, 0);                             // Rickkas' FRAM library
 // Support for Particle Products (changes coming in 4.x - https://docs.particle.io/cards/firmware/macros/product_id/)
 PRODUCT_ID(PLATFORM_ID);                            // Device needs to be added to product ahead of time.  Remove once we go to deviceOS@4.x
 PRODUCT_VERSION(0);
-char currentPointRelease[6] ="0.07";
+char currentPointRelease[6] ="0.08";
 
 void setup() {
 
     particleInitialize();                           // Sets up all the Particle functions and variables defined in particle_fn.h
 
-    // Initialize AB1805 Watchdog and RTC
-    {
+    {                                               // Initialize AB1805 Watchdog and RTC                                 
         ab1805.setup();
 
-        // Reset the AB1805 configuration to default values
-        ab1805.resetConfig();
+        ab1805.resetConfig();                       // Reset the AB1805 configuration to default values
 
-        // Enable watchdog
-        ab1805.setWDT(AB1805::WATCHDOG_MAX_SECONDS);
+        ab1805.setWDT(AB1805::WATCHDOG_MAX_SECONDS);// Enable watchdog
     }
 
-    // Initialize PublishQueuePosixRK
-	PublishQueuePosix::instance().setup();
+	PublishQueuePosix::instance().setup();          // Initialize PublishQueuePosixRK
 
-    // Configure and initialize the Sleep Helper function
-    sleepHelperConfig();                                 // This is the function call to configure the sleep helper parameters
+    storageObjectStart();                           // Sets up the storage for system and current status in storage_objects.h
 
-    SleepHelper::instance().setup();                    // This puts these parameters into action
+    sleepHelperConfig();                            // This is the function call to configure the sleep helper parameters
+
+    SleepHelper::instance().setup();                // This puts these parameters into action
 }
 
 void loop() {
-    SleepHelper::instance().loop();
+    SleepHelper::instance().loop();                 // Monitor and manage the sleep helper workflow
 
-    ab1805.loop();
+    ab1805.loop();                                  // Monitor the real time clock and watchdog
     
-    PublishQueuePosix::instance().loop();
+    PublishQueuePosix::instance().loop();           // Monitor and manage the publish queue
+
+    storageObjectLoop();                            // Compares current system and current objects and stores if the hash changes (once / second)
 }

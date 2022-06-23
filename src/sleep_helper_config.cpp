@@ -32,7 +32,7 @@ void sleepHelperConfig() {
                 batteryState();
                 isItSafeToCharge();
                 char dataStr[128];           // Sends a Webhook based on these readings
-                snprintf(dataStr, sizeof(dataStr), "{\"battery\":%i,\"key1\":\"%s\",\"temp\":%4.2f,\"timestamp\":%lu000}", current.stateOfCharge, batteryContext[current.batteryState], current.tempC, Time.now());
+                snprintf(dataStr, sizeof(dataStr), "{\"battery\":%i,\"key1\":\"%s\",\"temp\":%4.2f, \"timestamp\":%lu000}", current.stateOfCharge, batteryContext[current.batteryState], current.tempC, Time.now());
                 PublishQueuePosix::instance().publish("Sleepy-Use-Case-Webhook", dataStr, PRIVATE);
                 Log.info(dataStr);          // Visibility to the payload in the webhook
             }
