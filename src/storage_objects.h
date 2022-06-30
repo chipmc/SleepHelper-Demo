@@ -1,19 +1,23 @@
-/* 
-* This file contains the storage objects for the system and the current values.  
+/**
+ * @file storage_objects.h
+ * @author Chip McClelland (chip@seeinisghts.com)
+ * @brief * This file contains the storage objects for the system and the current values.  
 * Defining these as objects allows us to store them in persistent storage
 *
 * To dos: 
 * Figure out some way to abstract the storage method (EEPROM, Flash, FRAM)
 * Make a more comprehensive set of system varaibles as changing this object could cause upgrade issues in future releases
-*/
-
+ * @version 0.1
+ * @date 2022-06-30
+ * 
+ */
 #ifndef SYS_STATUS_H
 #define SYS_STATUS_H
 
-#include "MB85RC256V-FRAM-RK.h"                     // Include this library if you are using FRAM
 #include "Particle.h"
+#include "MB85RC256V-FRAM-RK.h"                     // Include this library if you are using FRAM
 
-extern const int FRAMversionNumber;                 // Increment this number each time the memory map is changed
+extern MB85RC64 fram;                               // FRAM storage initilized in main source file
 
 // If you modify the sysStatus or current structures, make sure to update the hash function definitions
 struct systemStatus_structure {                     // Where we store the configuration / status of the device

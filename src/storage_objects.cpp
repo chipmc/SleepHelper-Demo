@@ -1,15 +1,6 @@
-/* 
-* This file contains the storage objects for the system and the current values.  
-* Defining these as objects allows us to store them in persistent storage
-*
-* To dos: 
-* Figure out some way to abstract the storage method (EEPROM, Flash, FRAM)
-* Make a more comprehensive set of system varaibles as changing this object could cause upgrade issues in future releases
-*/
 
-#include "MB85RC256V-FRAM-RK.h"                     // Include this library if you are using FRAM
-#include "storage_objects.h"
 #include "Particle.h"
+#include "storage_objects.h"
 
 namespace FRAM {                                    // Moved to namespace instead of #define to limit scope
   enum Addresses {
@@ -21,10 +12,16 @@ namespace FRAM {                                    // Moved to namespace instea
 
 const int FRAMversionNumber = 1;
 
-extern MB85RC64 fram; 
+// These two storage objects are initilized here and are external everywhere else
 struct systemStatus_structure sysStatus;            // See structure definition in storage_objects.h
 struct current_structure current;     
 
+/**
+ * @brief This function is executed in setup to initialize FRAM and load the storage objects from memory
+ * 
+ * @return true - Functions completed - values loaded or initilized if version number changed
+ * @return false - Storage not initialized - need to resolve in an ERROR state
+ */
 bool storageObjectStart() {
     // Next we will load FRAM and check or reset variables to their correct values
   fram.begin();                                     // Initialize the FRAM module
@@ -36,10 +33,12 @@ bool storageObjectStart() {
     fram.get(FRAM::versionAddr, tempVersion);       // See if this worked
     if (tempVersion != FRAMversionNumber) {
       // Need to add an error handler here as the device will not work without FRAM will need to reset
+      return false;
     }
-    loadSystemDefaults();                           // Out of the box, we need the device to be awake and connected
+    loadSystemDefaults();                           // Since we are re-initializing the storage objects, we need to set the right default values
   }
   else {
+    Log.info("FRAM initialized, loading objects");
     fram.get(FRAM::systemStatusAddr,sysStatus);     // Loads the System Status array from FRAM
     fram.get(FRAM::currentStatusAddr,current);      // Loead the current values array from FRAM
   }
@@ -47,14 +46,21 @@ bool storageObjectStart() {
   return true;
 }
 
+/**
+ * @brief In this function, we check each second to see if the values in the storage objects have changed
+ * 
+ * @return true - One or more of the hash values have changed - object written to FRAM
+ * @return false - No change, nothing written to FRAM
+ */
+
 bool storageObjectLoop() {                          // Monitors the values of the two objects and writes to FRAM if changed after a second
-  static time_t lastCheckMillis = 0;
+  static time_t lastCheckTime = 0;
   static size_t lastSysStatusHash;
   static size_t lastCurrentHash;
   bool returnValue = false;
 
-  if (millis() - lastCheckMillis > 1000) {          // Check once a second
-    lastCheckMillis = millis();                     // Limit all this math to once a second
+  if (Time.now() - lastCheckTime) {          // Check once a second
+    lastCheckTime = Time.now();                     // Limit all this math to once a second
     size_t sysStatusHash =  std::hash<byte>{}(sysStatus.structuresVersion) + \
                       std::hash<int>{}(sysStatus.currentConnectionLimit)+ \
                       std::hash<bool>{}(sysStatus.verboseMode) + \
@@ -63,7 +69,7 @@ bool storageObjectLoop() {                          // Monitors the values of th
                       std::hash<byte>{}(sysStatus.wakeTime) + \
                       std::hash<byte>{}(sysStatus.sleepTime);
     if (sysStatusHash != lastSysStatusHash) {       // If hashes don't match write to FRAM
-      Log.info("system Object stored and hash updated");
+      Log.info("sysStaus object stored and hash updated");
       fram.put(FRAM::systemStatusAddr,sysStatus);
       lastSysStatusHash = sysStatusHash;
       returnValue = true;                           // In case I want to test whether values changed
@@ -74,7 +80,7 @@ bool storageObjectLoop() {                          // Monitors the values of th
                       std::hash<time_t>{}(current.lastCountTime) + \
                       std::hash<u_int16_t>{}(current.lastConnectionDuration);
     if (currentHash != lastCurrentHash) {           // If hashes don't match write to FRAM
-      Log.info("current Object stored and hash updated");
+      Log.info("current object stored and hash updated");
       fram.put(FRAM::currentStatusAddr,current);
       lastCurrentHash = currentHash;
       returnValue = true;
@@ -84,11 +90,16 @@ bool storageObjectLoop() {                          // Monitors the values of th
   return returnValue;
 }
 
-void loadSystemDefaults() {
-    if (Particle.connected()) {
+
+/**
+ * @brief This function is called in setup if the version of the FRAM stoage map has been changed
+ * 
+ */
+void loadSystemDefaults() {                         // This code is only executed with a new device or a new storage object structure
+  if (Particle.connected()) {
     Particle.publish("Mode","Loading System Defaults", PRIVATE);
   }
-  Log.info("Loading system defaults");
+  Log.info("Loading system defaults");              // Letting us know that defaults are being loaded
   sysStatus.structuresVersion = 1;
   sysStatus.currentConnectionLimit = 10;
   sysStatus.verboseMode = false;

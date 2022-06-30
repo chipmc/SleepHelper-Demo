@@ -1,20 +1,9 @@
 //Particle Functions
-#include "AB1805_RK.h"
-#include "PublishQueuePosixRK.h"
-#include "SleepHelper.h"
-#include "take_measurements.h"
-#include "storage_objects.h"
-#include "device_pinout.h"
 #include "Particle.h"
-
-extern AB1805 ab1805;                                // Rickkas' RTC / Watchdog library
-
-system_tick_t pinWakeMillis = 0;
-system_tick_t lastButtonPress = 0;
+#include "sleep_helper_config.h"
 
 // Battery conect information - https://docs.particle.io/reference/device-os/firmware/boron/#batterystate-
 const char* batteryContext[7] = {"Unknown","Not Charging","Charging","Charged","Discharging","Fault","Diconnected"};
-
 
 void sleepHelperConfig() {
 
@@ -25,61 +14,34 @@ void sleepHelperConfig() {
         .withEventHistory("/usr/events.txt", "eh")
         .withDataCaptureFunction([](SleepHelper::AppCallbackState &state) {
             if (Time.isValid()) {
-                SleepHelper::instance().addEvent([](JSONWriter &writer) {
-                    writer.name("t").value((int) Time.now());
-                    writer.name("c").value(readTempC(), 1);
-                });
                 batteryState();
                 isItSafeToCharge();
-                char dataStr[128];           // Sends a Webhook based on these readings
-                snprintf(dataStr, sizeof(dataStr), "{\"battery\":%i,\"key1\":\"%s\",\"temp\":%4.2f, \"timestamp\":%lu000}", current.stateOfCharge, batteryContext[current.batteryState], current.tempC, Time.now());
-                PublishQueuePosix::instance().publish("Sleepy-Use-Case-Webhook", dataStr, PRIVATE);
-                Log.info(dataStr);          // Visibility to the payload in the webhook
+                readTempC();
+                SleepHelper::instance().addEvent([](JSONWriter &writer) {
+                    writer.name("t").value((int) Time.now());
+                    writer.name("bs").value(current.batteryState);
+                    writer.name("c").value(current.tempC);
+                });
             }
             return false;
         })
         .withSleepConfigurationFunction([](SystemSleepConfiguration &sleepConfig, SleepHelper::SleepConfigurationParameters &params) {
             // Add a GPIO wake on button press
-            sleepConfig.gpio(BUTTON_PIN, CHANGE);
-            if (!digitalRead(BUTTON_PIN)) sysStatus.enableSleep = false;
-            return true;
-        })
-        .withWakeFunction([](const SystemSleepResult &sleepResult) {
-            if (sleepResult.wakeupReason() == SystemSleepWakeupReason::BY_GPIO) {
-                pin_t whichPin = sleepResult.wakeupPin();
-                Log.info("wake by pin %d", whichPin);
-                if (whichPin == BUTTON_PIN) {
-                    lastButtonPress = pinWakeMillis = millis();
-                }
-                else {
-                    pinWakeMillis = 0;
-                }
+            sleepConfig.gpio(BUTTON_PIN, CHANGE);   // My debounce time constant prevents detecting FALLING
+            delay(2000);                            // This is a debugging line - to connect to USB serial for logging
+            Log.info("Woke on button press");
+            if (!digitalRead(BUTTON_PIN)) {         // The BUTTON is active low - this is a button press
+                sysStatus.enableSleep = false;      // Pressing the button diables sleep - at least that is the intent
+                Log.info("Button press - sleep enable is %s", (sysStatus.enableSleep) ? "true" : "false");
             }
             return true;
-        })
-        .withShouldConnectFunction([](int &connectConviction, int &noConnectConviction) {
-            if (pinWakeMillis) {
-                // Waking by the user pressing the button signals the need to connect.
-                noConnectConviction = 0;
-            }
-            return true;
-        })
-        .withNoConnectionFunction([](SleepHelper::AppCallbackState &state) {
-            // If woken by pin, wait until button is released
-            if (pinWakeMillis) {
-                // return true to stay awake, false to allow sleep
-                return (digitalRead(BUTTON_PIN) == LOW);
-            }
-            else {
-                return false;
-            }
         })
         .withSleepReadyFunction([](SleepHelper::AppCallbackState &, system_tick_t) {
-            if (sysStatus.enableSleep) return false;      // Boolean set by Particle.function - If sleep is enabled return false
-            else return true;                             // If we need to delay sleep, return true
+            if (sysStatus.enableSleep) return false;// Boolean set by Particle.function - If sleep is enabled return false
+            else return true;                       // If we need to delay sleep, return true
         })
-        .withAB1805_WDT(ab1805)                // Stop the watchdog before sleep or reset, and resume after wake
-        .withPublishQueuePosixRK()             // Manage both internal publish queueing and PublishQueuePosixRK
+        .withAB1805_WDT(ab1805)                     // Stop the watchdog before sleep or reset, and resume after wake
+        .withPublishQueuePosixRK()                  // Manage both internal publish queueing and PublishQueuePosixRK
         ;
 
     // Full wake and publish
@@ -89,7 +51,7 @@ void sleepHelperConfig() {
         .withMinuteOfHour(15, LocalTimeRange(LocalTimeHMS("09:00:00"), LocalTimeHMS("21:59:59"), LocalTimeRestrictedDate(LocalTimeDayOfWeek::MASK_WEEKDAY)))
         .withHourOfDay(2);
 
-    // Data capture every 2 minutes
+    // Data capture every 5 minutes
     SleepHelper::instance().getScheduleDataCapture()
-        .withMinuteOfHour(2);
+        .withMinuteOfHour(5);
 }

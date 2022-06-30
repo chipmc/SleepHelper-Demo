@@ -18,4 +18,6 @@ extern const pin_t BUTTON_PIN;
 extern const pin_t BLUE_LED;
 extern const pin_t WAKEUP_PIN;   
 
+bool initializePinModes();
+
 #endif

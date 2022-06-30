@@ -1,12 +1,12 @@
 //Particle Functions
-#include "device_pinout.h"
 #include "Particle.h"
+#include "device_pinout.h"
 
 /**********************************************************************************************************************
  * ******************************         Boron Pinout Example               ******************************************
  * https://docs.particle.io/reference/datasheets/b-series/boron-datasheet/#pins-and-button-definitions
  *
- * Left Side (16 pins)
+ Left Side (16 pins)
  * !RESET -
  * 3.3V -
  * !MODE -
@@ -36,8 +36,6 @@
  * D2 - 
  * D1 - SCL - I2C Clock -   FRAM / RTC and I2C Bus
  * D0 - SDA - I2C Data -    FRAM / RTX and I2C Bus
- *
- *
 ***********************************************************************************************************************/
 
 const pin_t TMP36_SENSE_PIN = A4;
@@ -45,3 +43,13 @@ const pin_t TMP36_POWER_PIN = A1;
 const pin_t BUTTON_PIN      = D4;
 const pin_t BLUE_LED        = D7;
 const pin_t WAKEUP_PIN      = D8;
+
+bool initializePinModes() {
+    Log.info("Initalizing the pinModes");
+    // Define as inputs or outputs
+    pinMode(BUTTON_PIN,INPUT_PULLUP);                         // User button on the carrier board - active LOW
+    pinMode(WAKEUP_PIN,INPUT);                         // This pin is active HIGH
+    pinMode(BLUE_LED,OUTPUT);                          // On the Boron itself
+    return true;
+}
+                

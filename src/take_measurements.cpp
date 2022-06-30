@@ -1,13 +1,10 @@
 //Particle Functions
-#include "take_measurements.h"
-#include "storage_objects.h"
-#include "device_pinout.h"
 #include "Particle.h"
+#include "take_measurements.h"
 
-char tempString[16] = " ";
+FuelGauge fuelGauge;                                // Needed to address issue with updates in low battery state 
 
-FuelGauge fuelGauge;                                // Needed to address issue with updates in low battery state
-
+char tempString[16] = " ";                          // Initialized here - external everywhere else
 
 /**
  * @brief This code collects temperature data from the TMP-36
@@ -17,8 +14,7 @@ FuelGauge fuelGauge;                                // Needed to address issue w
  * @returns Returns true if succesful and puts the data into the current object
  * 
  */
-
-bool readTempC() {
+bool readTempC() { 
 
     digitalWrite(TMP36_POWER_PIN, HIGH);
     delay(2);
@@ -49,14 +45,21 @@ bool readTempC() {
 
     snprintf(tempString,sizeof(tempString), "%4.2f C", current.tempC);
 
+    Log.info("Temperature is %s",tempString);
+
     return true;
 }
 
-/**
- * @brief Tests Battery and stores current values
- * 
- */
 
+/**
+ * @brief In this function, we will measure the battery state of charge and the current functional state
+ * 
+ * @details One factor that is an issue today is the accurace of the state of charge if the device is waking
+ * from sleep.  In order to help with this, there is a test for enable sleep and an additional delay.
+ * 
+ * @return true  - If the battery has a charge over 60%
+ * @return false - Less than 60% indicates a low battery condition
+ */
 bool batteryState() {
     current.batteryState = System.batteryState();                      // Call before isItSafeToCharge() as it may overwrite the context
 
@@ -79,17 +82,16 @@ bool batteryState() {
  * @link https://batteryuniversity.com/learn/article/charging_at_high_and_low_temperatures @endlink
  * 
  */
-
-bool isItSafeToCharge()                                                // Returns a true or false if the battery is in a safe charging range.
+bool isItSafeToCharge()                             // Returns a true or false if the battery is in a safe charging range.
 {
   PMIC pmic(true);
-  if (current.tempC < 0 || current.tempC > 37 )  {                     // Reference: (32 to 113 but with safety)
-    pmic.disableCharging();                                            // It is too cold or too hot to safely charge the battery
-    current.batteryState = 1;                                        // Overwrites the values from the batteryState API to reflect that we are "Not Charging"
+  if (current.tempC < 0 || current.tempC > 37 )  {  // Reference: (32 to 113 but with safety)
+    pmic.disableCharging();                         // It is too cold or too hot to safely charge the battery
+    current.batteryState = 1;                       // Overwrites the values from the batteryState API to reflect that we are "Not Charging"
     return false;
   }
   else {
-    pmic.enableCharging();                                             // It is safe to charge the battery
+    pmic.enableCharging();                          // It is safe to charge the battery
     return true;
   }
 }

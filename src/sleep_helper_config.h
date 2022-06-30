@@ -12,7 +12,15 @@
 #define SLEEP_HELPER_CONFIG_H
 
 #include "Particle.h"
+#include "AB1805_RK.h"
+#include "PublishQueuePosixRK.h"
+#include "SleepHelper.h"
+#include "take_measurements.h"
+#include "storage_objects.h"
+#include "device_pinout.h"
 
-void sleepHelperConfig();           // Takes temperature and stores in current
+extern AB1805 ab1805;                               // This library is initialized in the main source file
+
+void sleepHelperConfig();                           // Takes temperature and stores in current
 
 #endif

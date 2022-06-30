@@ -1,14 +1,9 @@
 //Particle Functions
-#include "particle_fn.h"
-#include "storage_objects.h"
 #include "Particle.h"
-
-// Variables
-extern char tempString[16];
-extern char currentPointRelease[6];
+#include "particle_fn.h"
 
 /**
- * @brief Returns an integer to support Particle vaiable limitations
+ * @brief Returns an integer to support Particle variable limitations
  * 
  */
 int convertWakeToInt() {
@@ -21,12 +16,13 @@ int convertSleepToInt() {
 }
 
 /**
- * @brief Initialized the Particle functions and variables
+ * @brief Initializes the Particle functions and variables
  * 
  * @details If new particles of functions are defined, they need to be initialized here
  * 
  */
 void particleInitialize() {
+  Log.info("Initializing Particle functions and variables");
   Particle.variable("tempC", tempString);
   Particle.variable("Wake Time", convertWakeToInt);
   Particle.variable("Sleep Time", convertSleepToInt);
@@ -52,12 +48,13 @@ void particleInitialize() {
 int setWakeTime(String command)
 {
   char * pEND;
-  char data[256];
+  char data[64];
   int tempTime = strtol(command,&pEND,10);                             // Looks for the first integer and interprets it
   if ((tempTime < 0) || (tempTime > 23)) return 0;                     // Make sure it falls in a valid range or send a "fail" result
   sysStatus.wakeTime = tempTime;
+  snprintf(data, sizeof(data), "Open time set to %i",sysStatus.wakeTime);
+  Log.info(data);
   if (Particle.connected()) {
-    snprintf(data, sizeof(data), "Open time set to %i",sysStatus.wakeTime);
     Particle.publish("Time",data, PRIVATE);
   }
   return 1;
@@ -77,12 +74,15 @@ int setWakeTime(String command)
 int setSleepTime(String command)
 {
   char * pEND;
-  char data[256];
+  char data[64];
   int tempTime = strtol(command,&pEND,10);                       // Looks for the first integer and interprets it
   if ((tempTime < 0) || (tempTime > 24)) return 0;   // Make sure it falls in a valid range or send a "fail" result
   sysStatus.sleepTime = tempTime;
   snprintf(data, sizeof(data), "Closing time set to %i",sysStatus.sleepTime);
-  if (Particle.connected()) Particle.publish("Time",data, PRIVATE);
+  Log.info(data);
+  if (Particle.connected()) {
+    Particle.publish("Time",data, PRIVATE);
+  }
   return 1;
 }
 
@@ -100,26 +100,18 @@ int setSleepTime(String command)
  */
 int setEnableSleep(String command)                                   // This is where we can put the device into low power mode if needed
 {
-  char enableSleepStr[24];
-
+  char data[64];
   if (command != "1" && command != "0") return 0;                     // Before we begin, let's make sure we have a valid input
-  if (command == "1")                                                 // Command calls for setting lowPowerMode
-  {
+  if (command == "1") {                                               // Command calls for enabling sleep
     sysStatus.enableSleep = true;
-    strncpy(enableSleepStr,"Enabled Sleep", sizeof(enableSleepStr));
-    Log.info(enableSleepStr);
-    if (Particle.connected()) {
-      Particle.publish("Mode",enableSleepStr, PRIVATE);
-    }
   }
-  else if (command == "0")                                            // Command calls for clearing lowPowerMode
-  {
+  else {                                                             // Command calls for disabling sleep
     sysStatus.enableSleep = false;
-    strncpy(enableSleepStr,"Disabled Sleep",  sizeof(enableSleepStr));
-    Log.info(enableSleepStr);
-    if (Particle.connected()) {                                 // In case we are not connected, we will do so now.
-      Particle.publish("Mode",enableSleepStr, PRIVATE);
-    }
+  }
+  snprintf(data, sizeof(data), "Enable sleep is %s", (sysStatus.enableSleep) ? "true" : "false");
+  Log.info(data);
+  if (Particle.connected()) {
+    Particle.publish("Mode",data, PRIVATE);
   }
   return 1;
 }
