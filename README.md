@@ -1,6 +1,8 @@
 # SleepHelper-Demo
 
-A demonstration project for the new Sleep Helper library
+A demonstration project for the new Particle Sleep Helper library
+
+The Sleep Helper library can be found here: https://github.com/rickkas7/SleepHelper
 
 ## Goal of this project
 
@@ -10,15 +12,15 @@ Central to this approach is to reduce the amount of customization of the main so
 
 I am looking for feedback and suggestions on whether this approach makes sense or if there is a better way.
 
-// Revision history
-// v0.00 - Started with Rick's Temperature Example - modified slightly for my pinout and Serial not Serial1
-// v0.01 - Added the AB1805 Watchdog timer library
-// v0.02 - Updated with the example code and update from version 0.0.2 of the library
-// v0.03 - Trying to add the ability to send a Particle Webhook - not working
-// v0.04 - Changed the structure of the code to make it easier to maintain / more modular
-// v0.05 - Moved Sleep Helper configuration into a separate function
-// v0.06 - Added persistent storage and particle control using Particle functions
-// v0.07 - Incorporated updated libraries, added webhook and fixed bugs
-// v0.08 - Implemented persistent storage - updated Particle variables
-// v0.09 - Working on control over sleep - wake still needs work.  Static Ubidots webhooks working
+* Revision history
+* v0.00 - Started with Rick's Temperature Example - modified slightly for my pinout and Serial not Serial1
+* v0.01 - Added the AB1805 Watchdog timer library
+* v0.02 - Updated with the example code and update from version 0.0.2 of the library
+* v0.03 - Trying to add the ability to send a Particle Webhook - not working
+* v0.04 - Changed the structure of the code to make it easier to maintain / more modular
+* v0.05 - Moved Sleep Helper configuration into a separate function
+* v0.06 - Added persistent storage and particle control using Particle functions
+* v0.07 - Incorporated updated libraries, added webhook and fixed bugs
+* v0.08 - Implemented persistent storage - updated Particle variables
+* v0.09 - Working on control over sleep - wake still needs work.  Static Ubidots webhooks working
 
